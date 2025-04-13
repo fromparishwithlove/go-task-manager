@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Task Manager</title>
+  <style>
+    .hidden { display: none; }
+    input, button { display: block; margin: 10px 0; }
+  </style>
+</head>
+<body>
+
+  <!-- Регистрация -->
+  <div id="screen-register">
+    <h2>Регистрация</h2>
+    <input id="reg-username" placeholder="Имя пользователя" />
+    <input id="reg-password" type="password" placeholder="Пароль" />
+    <button onclick="register()">Зарегистрироваться</button>
+    <button onclick="showScreen('screen-login')">Уже есть аккаунт?</button>
+  </div>
+
+  <!-- Вход -->
+  <div id="screen-login" class="hidden">
+    <h2>Вход</h2>
+    <input id="login-username" placeholder="Имя пользователя" />
+    <input id="login-password" type="password" placeholder="Пароль" />
+    <button onclick="login()">Войти</button>
+    <button onclick="showScreen('screen-register')">Создать аккаунт</button>
+  </div>
+
+  <!-- Задачи -->
+  <div id="screen-tasks" class="hidden">
+    <h2>Создать задачу</h2>
+    <input id="task-title" placeholder="Заголовок" />
+    <input id="task-desc" placeholder="Описание" />
+    <button onclick="createTask()">Создать</button>
+
+    <h3>Мои задачи</h3>
+    <button onclick="fetchTasks()">Показать все</button>
+    <ul id="task-list"></ul>
+
+    <hr>
+    <button onclick="logout()">Выйти</button>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8080';
+    let token = localStorage.getItem('token') || '';
+
+    // Показ нужного экрана
+    function showScreen(id) {
+      document.querySelectorAll('div[id^="screen-"]').forEach(div => div.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    // Если токен уже есть — сразу в таски
+    if (token) {
+      showScreen('screen-tasks');
+    }
+
+    async function register() {
+      const username = document.getElementById('reg-username').value;
+      const password = document.getElementById('reg-password').value;
+
+      await fetch(`${API}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      alert('Успешно зарегистрирован!');
+      showScreen('screen-login');
+    }
+
+    async function login() {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      const res = await fetch(`${API}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      token = data.token;
+      localStorage.setItem('token', token);
+      showScreen('screen-tasks');
+    }
+
+    async function createTask() {
+      const title = document.getElementById('task-title').value;
+      const description = document.getElementById('task-desc').value;
+
+      await fetch(`${API}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, description })
+      });
+
+      alert('Задача добавлена!');
+      fetchTasks(); // обновим список
+    }
+
+    async function fetchTasks() {
+      const res = await fetch(`${API}/tasks`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const tasks = await res.json();
+      const list = document.getElementById('task-list');
+      list.innerHTML = '';
+
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <label>
+            <input type="checkbox" ${task.completed ? 'checked' : ''} 
+              onchange="toggleTask(${task.ID}, this.checked)">
+            <strong>${task.title}</strong>: ${task.description}
+          </label>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    async function toggleTask(id, completed) {
+      await fetch(`${API}/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ completed })
+      });
+    }
+
+    function logout() {
+      token = '';
+      localStorage.removeItem('token');
+      showScreen('screen-login');
+    }
+  </script>
+</body>
+</html>
