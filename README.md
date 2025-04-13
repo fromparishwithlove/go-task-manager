@@ -1,6 +1,7 @@
 # Go Task Manager API 🧠
 
 REST API для управления задачами, написанный на Go с использованием:
+
 - Gin (фреймворк)
 - GORM (ORM)
 - PostgreSQL
@@ -19,5 +20,6 @@ REST API для управления задачами, написанный на
 1. Склонируй проект:
 
 ```bash
-git clone https://github.com/твоя-ссылка/task-manager-go.git
+git clone https://github.com/fromparishwithlove/go-task-manager
 cd task-manager-go
+```
